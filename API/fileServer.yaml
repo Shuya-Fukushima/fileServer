@@ -1,0 +1,267 @@
+openapi: "3.0.3"
+
+info:
+  title: "File Server API"
+  version: "1.0.0"
+  description: |
+    このAPIはFileServerへのアクセスを提供する。
+
+    ## 🎨 設計思想 (Design Philosophy)
+    本APIは一つのディレクトリに対する操作を原則としています。  
+    常に親ディレクトリが一意であって、その配下にあるファイル・ディレクトリへの操作を提供しています。  
+    ※  
+    閉じた環境で動作することを前提としています。  
+    そのため、セキュリティは考慮しないものとして設計されています。  
+    ただし、実験的に内部のインクリメンタルなIDを流出させない試みとして、  
+    外部とのやり取りは基本的にUUIDを使用します。  
+
+    ## 🛠 設計方針 (Design Principles)
+    - **ステートレス性**: サーバー側でセッション状態を保持しません。
+    - **冪等性の担保**: PUTおよびDELETEメソッドは、複数回実行しても結果が変わらないよう設計されています。
+    - **レスポンス形式**: 全てJSON形式で返却され、日付データは `ISO 8601` 形式を採用します。
+  contact:
+    name: shikumafu
+    email: shikumafu@gmail.com
+
+servers:
+  - url: "https://api.example.com/v1222" # APIをホストしているサーバーのURL
+    description: 本番環境サーバー # このサーバーに関する追加情報
+  - url: "http://localhost:8080/api" # ローカル開発用のサーバーURL
+    description: 開発環境サーバー # この開発サーバーに関する追加情報
+
+paths:
+  "/items":
+    get:
+      summary: ファイル一覧取得
+      description: 指定されたフォルダ配下のファイル一覧を取得します。
+      parameters:
+        - name: folderId
+          in: query
+          description: 取得対象のフォルダID（未指定時はルート）
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
+
+  /folders:
+    post:
+      summary: フォルダ作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "新規フォルダ"
+                parentId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: 作成完了
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  publicId:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  physicalName:
+                    type: string
+
+# 未実装のためコメントアウト
+  # /items/{id}/name:
+  #   patch:
+  #     summary: 表示名（論理名）の変更 (A-03)
+  #     parameters:
+  #       - name: id
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: string
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               name:
+  #                 type: string
+  #     responses:
+  #       '200':
+  #         description: 更新成功
+
+  /uploads/{publicId}:
+    post:
+      summary: ファイル/フォルダのアップロード (A-04)
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: array
+              items:
+                files:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: アップロード成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                    example: false
+                  failList:
+                    type: array
+                    items:
+                      type: string
+                      example: upload_fail.txt
+
+# 未実装のためコメントアウト
+  # /files/{id}/download:
+  #   get:
+  #     summary: ファイルのダウンロード (A-05)
+  #     parameters:
+  #       - name: id
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: string
+  #     responses:
+  #       '200':
+  #         description: ファイルデータ
+  #         content:
+  #           application/octet-stream:
+  #             schema:
+  #               type: string
+  #               format: binary
+
+# 未実装のためコメントアウト
+  # /folders/{id}/zip:
+  #   post:
+  #     summary: フォルダZIP生成開始 (A-06)
+  #     description: 非同期でフォルダのZIP圧縮を開始します。
+  #     parameters:
+  #       - name: id
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: string
+  #     responses:
+  #       '202':
+  #         description: 受付完了
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 jobId:
+  #                   type: string
+
+# 未実装のためコメントアウト
+  # /zip-jobs/{jobId}:
+  #   get:
+  #     summary: ZIP生成の進捗取得 (A-07)
+  #     parameters:
+  #       - name: jobId
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: string
+  #     responses:
+  #       '200':
+  #         description: 進捗状況
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 status:
+  #                   type: string
+  #                   enum: [processing, completed, failed]
+  #                 progress:
+  #                   type: integer
+  #                   example: 100
+
+# 未実装のためコメントアウト
+  # /items/{id}/parent:
+  #   patch:
+  #     summary: フォルダ/ファイルの移動 (A-08)
+  #     parameters:
+  #       - name: id
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: string
+  #     requestBody:
+  #       required: true
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               destinationParentId:
+  #                 type: string
+  #     responses:
+  #       '200':
+  #         description: 移動成功
+
+# 未実装のためコメントアウト
+  # /items/{id}:
+  #   delete:
+  #     summary: フォルダ/ファイルの削除 (A-09)
+  #     parameters:
+  #       - name: id
+  #         in: path
+  #         required: true
+  #         schema:
+  #           type: string
+  #     responses:
+  #       '204':
+  #         description: 削除成功
+
+components:
+  schemas:
+    Item:
+      type: object
+      properties:
+        fileId:
+          type: string
+        publicId:
+          type: string
+          format: uuid
+        typeCode:
+          type: string
+          enum: [F, D]
+        name:
+          type: string
+        physicalName:
+          type: string
+        createAt:
+          type: string
+          format: date-time

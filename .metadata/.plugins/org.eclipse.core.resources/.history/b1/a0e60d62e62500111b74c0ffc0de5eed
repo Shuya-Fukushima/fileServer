@@ -1,0 +1,9 @@
+package com.shiku.file.transfer.domain;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class FileTransferService {
+	
+	public List<String> saveFiles()
+}

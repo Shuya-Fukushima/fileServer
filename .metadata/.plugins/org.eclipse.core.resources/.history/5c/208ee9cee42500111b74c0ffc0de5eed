@@ -1,0 +1,5 @@
+package com.shiku.file.transfer.domain;
+
+public class FileTransferService {
+
+}

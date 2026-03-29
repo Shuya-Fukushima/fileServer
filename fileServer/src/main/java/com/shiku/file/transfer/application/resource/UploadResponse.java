@@ -1,0 +1,20 @@
+package com.shiku.file.transfer.application.resource;
+
+import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
+@AllArgsConstructor
+public class UploadResponse {
+
+	/** アップロード結果 */
+	private boolean result;
+
+	/** 失敗ファイルリスト */
+	private List<String> failList;
+
+}

@@ -1,0 +1,24 @@
+package com.shiku.file.util;
+
+import java.nio.file.Path;
+import java.util.List;
+
+import com.shiku.file.util.db.resource.FilePathProjection;
+
+public class FolderUtil {
+	/**
+	 * 再帰的に取得された親フォルダリストからターゲットのパスを取得する。
+	 * @param parentFiles 再帰的に取得された親フォルダリスト
+	 * @param rootDir 根本パス
+	 * @return 親フォルダのパス
+	 */
+	public static Path getParentPath(List<FilePathProjection> parentFiles, Path rootDir) {
+		Path path = rootDir;
+
+		for (FilePathProjection filePath : parentFiles) {
+			path = path.resolve(filePath.getPhysicalName());
+		}
+
+		return path;
+	}
+}

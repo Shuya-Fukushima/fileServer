@@ -1,0 +1,10 @@
+package com.shiku.file.transfer.application.resource;
+
+import com.shiku.file.folder.application.request.FolderCreateRequest;
+
+import lombok.Data;
+
+@Data
+public class UploadResponse {
+
+}

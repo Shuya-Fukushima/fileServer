@@ -1,0 +1,17 @@
+package com.shiku.file.transfer.domain;
+
+import java.nio.file.Path;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+@Service
+public class FileTransferService {
+	
+	@Value("${file.upload-dir:C:/uploads}")
+	private Path rootDir;
+	
+	public List<String> saveFiles(){
+		
+	}
+}

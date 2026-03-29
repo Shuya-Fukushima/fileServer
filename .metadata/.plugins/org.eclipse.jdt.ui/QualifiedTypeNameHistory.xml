@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+    <fullyQualifiedTypeName name="com.shiku.file.util.db.repository.FileRepository"/>
+    <fullyQualifiedTypeName name="org.springframework.data.jpa.domain.Specification"/>
+    <fullyQualifiedTypeName name="com.shiku.file.items.application.resource.ItemDto.ItemDtoBuilder"/>
+    <fullyQualifiedTypeName name="com.shiku.file.items.application.resource.ItemDto"/>
+    <fullyQualifiedTypeName name="org.springframework.util.StringUtils"/>
+    <fullyQualifiedTypeName name="com.shiku.file.util.db.specifications.FileSpecifications"/>
+</qualifiedTypeNameHistroy>

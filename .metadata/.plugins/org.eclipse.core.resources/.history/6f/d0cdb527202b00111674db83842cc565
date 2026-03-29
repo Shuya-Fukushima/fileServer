@@ -1,0 +1,55 @@
+package com.shiku.file.transfer.domain;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.shiku.file.util.FolderUtil;
+import com.shiku.file.util.db.repository.FileRepository;
+
+@Service
+public class FileTransferService {
+	@Autowired
+	private FileRepository fileRepo;
+
+	@Value("${file.upload-dir:C:/uploads}")
+	private Path rootDir;
+
+	public FileTransferDomainResult storeFile(MultipartFile file, UUID parentId) {
+		// ファイル名のクリーンアップ（例: test.jpg）
+		String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+
+		// DBから親フォルダのパスを構築する
+		Path parentPath = null;
+		try {
+			parentPath = FolderUtil.getParentPath(fileRepo.findFilePathList(parentId), rootDir);
+		} catch (Exception e) {
+			return FileTransferDomainResult.SQL_EXECUTE_FAIL;
+		}
+
+		// フォルダーを作成する
+		if (!parentPath.resolve(physicalName).toFile().mkdir()) {
+			return FileTransferDomainResult.FOLDER_CREATE_FAIL;
+		}
+
+		try {
+			// IDごとのサブディレクトリを作成（例: ./uploads/123/）
+			Path targetLocation = this.fileStorageLocation.resolve(subDir).resolve(fileName);
+			Files.createDirectories(targetLocation.getParent());
+
+			// ファイルを保存（既存ファイルがある場合は置換）
+			file.transferTo(targetLocation);
+
+			return fileName;
+		} catch (IOException ex) {
+			throw new RuntimeException("ファイルの保存に失敗しました: " + fileName, ex);
+		}
+	}
+}

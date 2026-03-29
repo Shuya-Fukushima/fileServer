@@ -1,0 +1,14 @@
+package com.shiku.file.transfer.application.resource;
+
+import com.shiku.file.folder.application.resource.FolderDto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
+@AllArgsConstructor
+public class UploadResponse {
+
+}
