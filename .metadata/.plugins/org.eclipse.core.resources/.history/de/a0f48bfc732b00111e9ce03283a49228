@@ -1,0 +1,41 @@
+package com.shiku.file.util.domain.service;
+
+import java.nio.file.Path;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.shiku.file.util.inflastructure.repository.FileRepository;
+import com.shiku.file.util.inflastructure.resource.File;
+import com.shiku.file.util.inflastructure.resource.FilePathProjection;
+
+@Service
+public class FolderUtilService {
+
+	@Autowired
+	private FileRepository repo;
+
+	public void checkExistFile(UUID publicId) {
+		List<File> files = repo.findAll(
+				(root, query, criteriaBuilder) -> criteriaBuilder.lessThanOrEqualTo(root.get("public_id"), publicId));
+	}
+
+	/**
+	 * 再帰的に取得された親フォルダリストからターゲットのパスを取得する。
+	 * （FileRepository.findFilePathListより）
+	 * @param parentFiles 再帰的に取得された親フォルダリスト
+	 * @param rootDir 根本パス
+	 * @return 親フォルダのパス
+	 */
+	public static Path getParentPath(List<FilePathProjection> parentFiles, Path rootDir) {
+		Path path = rootDir;
+
+		for (FilePathProjection filePath : parentFiles) {
+			path = path.resolve(filePath.getPhysicalName());
+		}
+
+		return path;
+	}
+}

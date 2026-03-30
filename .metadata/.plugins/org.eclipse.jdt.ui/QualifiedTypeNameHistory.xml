@@ -6,4 +6,7 @@
     <fullyQualifiedTypeName name="com.shiku.file.items.application.resource.ItemDto"/>
     <fullyQualifiedTypeName name="org.springframework.util.StringUtils"/>
     <fullyQualifiedTypeName name="com.shiku.file.util.db.specifications.FileSpecifications"/>
+    <fullyQualifiedTypeName name="java.lang.NullPointerException"/>
+    <fullyQualifiedTypeName name="com.shiku.file.util.domain.service.FileUtilService"/>
+    <fullyQualifiedTypeName name="java.util.ArrayList"/>
 </qualifiedTypeNameHistroy>

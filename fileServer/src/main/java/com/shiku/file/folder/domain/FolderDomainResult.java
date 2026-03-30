@@ -1,7 +1,5 @@
 package com.shiku.file.folder.domain;
 
-import com.shiku.file.util.db.resource.File;
-
 public enum FolderDomainResult {
 
 	// 特に異常なく成功した場合
@@ -11,10 +9,14 @@ public enum FolderDomainResult {
 	// DB関連で失敗した場合
 	SQL_EXECUTE_FAIL(2),
 	// 漢字半角英字変換で失敗した場合
-	GEN_HALFWIDTH_FAIL(3);
+	GEN_HALFWIDTH_FAIL(3),
+	// 存在しないフォルダが指定されていた場合
+	NOT_EXIST(4),
+	// データ不整合
+	DATA_INCONSISTENCY(5)
+	;
 
 	private int result;
-	private File file;
 
 	private FolderDomainResult(int result) {
 		this.result = result;
@@ -22,13 +24,5 @@ public enum FolderDomainResult {
 
 	public int getResult() {
 		return this.result;
-	}
-
-	public void setFile(File file) {
-		this.file = file;
-	}
-
-	public File getFile() {
-		return this.file;
 	}
 }

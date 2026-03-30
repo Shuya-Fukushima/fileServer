@@ -1,8 +1,0 @@
-package com.shiku.file.transfer.application.resource;
-
-import lombok.Data;
-
-@Data
-public class UploadResponse {
-
-}

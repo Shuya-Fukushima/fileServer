@@ -1,62 +1,99 @@
 package com.shiku.file.transfer.domain;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.shiku.file.util.FolderUtil;
-import com.shiku.file.util.db.repository.FileRepository;
+import com.shiku.file.util.JapaneseToRomaji;
+import com.shiku.file.util.inflastructure.repository.ExtensionMasterRepository;
+import com.shiku.file.util.inflastructure.repository.FileRepository;
+import com.shiku.file.util.inflastructure.resource.ExtensionMaster;
+import com.shiku.file.util.inflastructure.resource.File;
 
 @Service
 public class FileTransferService {
 	@Autowired
-	private FileRepository fileRepo;
+	private FileRepository repo;
 
-	@Value("${file.upload-dir:C:/uploads}")
-	private Path rootDir;
+	@Autowired
+	private ExtensionMasterRepository extenRepo;
 
-	public FileTransferDomainResult storeFile(List<MultipartFile> files, UUID parentId) {
+	/**
+	 * ファイルを保存して、DBに登録する
+	 * @param parentPath 保存先フォルダのパス
+	 * @param parentId 保存先フォルダID
+	 * @param files 保存対象ファイル
+	 * @return 保存に失敗したファイルリスト
+	 * @throws IOException すべて保存に失敗
+	 * @throws SQLException SQLで失敗
+	 */
+	@Transactional
+	public List<String> storeFile(Path parentPath, Long parentId, List<MultipartFile> files)
+			throws IOException, SQLException {
 
-		// DBから親フォルダのパスを構築する
-		Path parentPath = null;
-		try {
-			parentPath = FolderUtil.getParentPath(fileRepo.findFilePathList(parentId), rootDir);
-		} catch (Exception e) {
-			return FileTransferDomainResult.SQL_EXECUTE_FAIL;
-		}
+		// 拡張子マスタからIDに変換するMapオブジェクトを取得する。
+		Map<String, Integer> extentionMap = this.getExtentionMaster();
 
-		// フォルダーの存在チェック
-		if (!Files.exists(parentPath)) {
-			return FileTransferDomainResult.PARENT_FOLDER_NOT_FOUND;
-		}
-
-		FileTransferDomainResult result = FileTransferDomainResult.SUCCESS;
+		List<String> failFiles = new ArrayList<>();
+		List<File> saveFiles = new ArrayList<>();
 
 		for (MultipartFile file : files) {
 			// ファイル名のクリーンアップ（例: test.jpg）
 			String fileName = StringUtils.cleanPath(file.getOriginalFilename());
-			Path targetLocation = parentPath.resolve(fileName);
 
 			try {
+				// 日本語を半角英数字で構成した物理名に変換
+				String physicalName = JapaneseToRomaji.generate(fileName);
+				Path targetLocation = parentPath.resolve(physicalName);
+
+				// ファイル保存
 				file.transferTo(targetLocation);
-			} catch (IOException ex) {
+
+				Integer extentionId = extentionMap.get(StringUtils.getFilenameExtension(fileName));
+
+				File saveFile = new File();
+				saveFile.setPublicId(UUID.randomUUID());
+				saveFile.setName(fileName);
+				saveFile.setPhysicalName(physicalName);
+				saveFile.setParentId(parentId);
+				saveFile.setSize(file.getSize());
+				saveFile.setExtension(String.format("%02d", extentionId != null ? extentionId.intValue() : 0));
+
+				saveFiles.add(saveFile);
+			} catch (Exception ex) {
 				// 作成失敗したファイルを保持
-				result.addFile(fileName);
+				failFiles.add(fileName);
 			}
 		}
 
-		if (result.getFiles().size() == files.size()) {
-			return FileTransferDomainResult.FILE_CREATE_FAIL;
+		// 保存対象がすべてエラーだった場合にエラーとして通知する
+		if (failFiles.size() == files.size()) {
+			throw new IOException();
 		}
 
-		return result;
+		repo.saveAll(saveFiles);
+
+		return failFiles;
+	}
+
+	/**
+	 * 拡張子をキー、内部IDをバリューとしたMapを取得する。
+	 * @return
+	 */
+	private Map<String, Integer> getExtentionMaster() {
+		return extenRepo.findAll().stream().collect(Collectors.toMap(
+				extensionMaster -> extensionMaster.getExtension().toLowerCase(),
+				ExtensionMaster::getExtensionId));
 	}
 }

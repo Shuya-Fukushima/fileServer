@@ -1,6 +1,13 @@
 package com.shiku.file.folder;
 
+import java.io.IOException;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.sql.SQLException;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,7 +19,8 @@ import com.shiku.file.folder.application.request.FolderCreateRequest;
 import com.shiku.file.folder.application.resource.FolderDto;
 import com.shiku.file.folder.domain.FolderDomainResult;
 import com.shiku.file.folder.domain.FolderService;
-import com.shiku.file.util.db.resource.File;
+import com.shiku.file.util.domain.service.FileUtilService;
+import com.shiku.file.util.inflastructure.resource.File;
 
 @RestController
 @RequestMapping("/api/folders")
@@ -21,22 +29,47 @@ public class FolderController {
 	@Autowired
 	private FolderService service;
 
+	@Autowired
+	private FileUtilService fileService;
+
 	// A-02: フォルダ作成
 	@PostMapping(produces = "application/json; charset=utf-8")
 	public ResponseEntity<FolderDto> createFolder(@RequestBody FolderCreateRequest request) {
-		FolderDomainResult result = service.createFolder(request.getParentId(), request.getName());
+		FolderDomainResult result = FolderDomainResult.SUCCESS;
+		File folder = null;
+
+		try {
+			Pair<File, Path> pair = fileService.checkExistFile(request.getParentId(), false);
+			folder = service.createFolder(pair.getSecond(), pair.getFirst().getParentId(), request.getName());
+		} catch (SQLException e) {
+			result = FolderDomainResult.SQL_EXECUTE_FAIL;
+		} catch (NullPointerException e) {
+			result = FolderDomainResult.NOT_EXIST;
+		} catch (IncorrectResultSizeDataAccessException e) {
+			result = FolderDomainResult.DATA_INCONSISTENCY;
+		} catch (NoSuchFileException e) {
+			result = FolderDomainResult.NOT_EXIST;
+		} catch (IllegalStateException e) {
+			result = FolderDomainResult.DATA_INCONSISTENCY;
+		} catch (IllegalArgumentException e) {
+			result = FolderDomainResult.GEN_HALFWIDTH_FAIL;
+		} catch (IOException e) {
+			result = FolderDomainResult.FOLDER_CREATE_FAIL;
+		}
 
 		HttpStatus status = switch (result) {
+		case FolderDomainResult.SUCCESS -> HttpStatus.CREATED;
+		case FolderDomainResult.FOLDER_CREATE_FAIL -> HttpStatus.CONFLICT;
 		case FolderDomainResult.SQL_EXECUTE_FAIL -> HttpStatus.INTERNAL_SERVER_ERROR;
 		case FolderDomainResult.GEN_HALFWIDTH_FAIL -> HttpStatus.NOT_ACCEPTABLE;
-		case FolderDomainResult.FOLDER_CREATE_FAIL -> HttpStatus.CONFLICT;
-		default -> HttpStatus.OK;
+		case FolderDomainResult.NOT_EXIST -> HttpStatus.NOT_FOUND;
+		case FolderDomainResult.DATA_INCONSISTENCY -> HttpStatus.BAD_REQUEST;
+		default -> HttpStatus.INTERNAL_SERVER_ERROR;
 		};
 
 		FolderDto folderDto = null;
-		File folder = result.getFile();
 
-		if (result.getFile() != null) {
+		if (folder != null) {
 			folderDto = FolderDto.builder()
 					.fileId(folder.getFileId())
 					.name(folder.getName())

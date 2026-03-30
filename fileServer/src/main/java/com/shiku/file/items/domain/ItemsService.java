@@ -8,9 +8,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.shiku.file.items.application.resource.ItemDto;
-import com.shiku.file.util.db.repository.FileRepository;
-import com.shiku.file.util.db.resource.File;
-import com.shiku.file.util.db.specifications.FileSpecifications;
+import com.shiku.file.util.inflastructure.repository.FileRepository;
+import com.shiku.file.util.inflastructure.resource.File;
+import com.shiku.file.util.inflastructure.specifications.FileSpecifications;
 
 @Service
 public class ItemsService {

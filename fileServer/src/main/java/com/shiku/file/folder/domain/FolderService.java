@@ -1,16 +1,16 @@
 package com.shiku.file.folder.domain;
 
+import java.io.IOException;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.shiku.file.util.FolderUtil;
 import com.shiku.file.util.JapaneseToRomaji;
-import com.shiku.file.util.db.repository.FileRepository;
-import com.shiku.file.util.db.resource.File;
+import com.shiku.file.util.inflastructure.repository.FileRepository;
+import com.shiku.file.util.inflastructure.resource.File;
 
 @Service
 public class FolderService {
@@ -18,54 +18,42 @@ public class FolderService {
 	@Autowired
 	private FileRepository fileRepo;
 
-	@Value("${file.upload-dir:C:/uploads}")
-	private Path rootDir;
-
 	/**
 	 * フォルダを作成する。
+	 * @param parentPath 親フォルダのパス
 	 * @param parentId 親フォルダID
 	 * @param name フォルダ名
-	 * @return
+	 * @return 作成されたフォルダ
+	 * @throws IllegalArgumentException 日本語変換に失敗
+	 * @throws IOException フォルダ作成に失敗
+	 * @throws SQLException SQLで失敗
 	 */
-	public FolderDomainResult createFolder(UUID parentId, String name) {
+	public File createFolder(Path parentPath, Long parentId, String name)
+			throws IllegalArgumentException, IOException, SQLException {
 
 		// 日本語を半角英数字で構成した物理名に変換
 		String physicalName = null;
 		try {
 			physicalName = JapaneseToRomaji.generate(name);
 		} catch (Exception e) {
-			return FolderDomainResult.GEN_HALFWIDTH_FAIL;
+			throw new IllegalArgumentException();
 		}
 
-		// DBから親フォルダのパスを構築する
-		Path parentPath = null;
-		try {
-			parentPath = FolderUtil.getParentPath(fileRepo.findFilePathList(parentId), rootDir);
-		} catch (Exception e) {
-			return FolderDomainResult.SQL_EXECUTE_FAIL;
-		}
-
-		// フォルダーを作成する
+		// フォルダを作成する
 		if (!parentPath.resolve(physicalName).toFile().mkdir()) {
-			return FolderDomainResult.FOLDER_CREATE_FAIL;
+			throw new IOException();
 		}
 
-		// 作成したフォルダーをDBに登録する
+		// 作成したフォルダをDBに登録する
 		File folder = new File();
 		folder.setPublicId(UUID.randomUUID());
 		folder.setTypeCode("D");
 		folder.setName(name);
 		folder.setPhysicalName(physicalName);
-		//folder.setParentId(parentId);
+		folder.setParentId(parentId);
 
-		try {
-			folder = fileRepo.save(folder);
-		} catch (Exception e) {
-			return FolderDomainResult.SQL_EXECUTE_FAIL;
-		}
+		folder = fileRepo.save(folder);
 
-		FolderDomainResult result = FolderDomainResult.SUCCESS;
-		result.setFile(folder);
-		return result;
+		return folder;
 	}
 }

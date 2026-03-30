@@ -39,9 +39,9 @@ COMMENT ON COLUMN file_server.file.updated_at IS '更新日';
 CREATE TABLE file_server.extension_master (
     extension_id SERIAL PRIMARY KEY,
     extension VARCHAR(20) NOT NULL UNIQUE,
-    is_image BOOLEAN DEFAULT FALSE,
-    is_binary BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
+    is_image BOOLEAN NOT NULL DEFAULT FALSE,
+    is_binary BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP(0) WITHOUT TIME ZONE,
     updated_at TIMESTAMP(0) WITHOUT TIME ZONE
 );

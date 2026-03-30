@@ -1,0 +1,5 @@
+package com.shiku.file.util.inflastructure.resource;
+
+public class ExtensionMaster {
+
+}
