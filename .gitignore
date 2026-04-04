@@ -1,0 +1,3 @@
+# Eclipse用ファイルを除外
+.metadata/
+Servers/
