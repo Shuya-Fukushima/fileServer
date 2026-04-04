@@ -8,9 +8,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.shiku.file.items.application.resource.ItemDto;
-import com.shiku.file.util.inflastructure.repository.FileRepository;
-import com.shiku.file.util.inflastructure.resource.File;
-import com.shiku.file.util.inflastructure.specifications.FileSpecifications;
+import com.shiku.file.util.db.file.File;
+import com.shiku.file.util.db.file.FileRepository;
+import com.shiku.file.util.db.file.FileSpecifications;
 
 @Service
 public class ItemsService {
@@ -20,6 +20,7 @@ public class ItemsService {
 
 	/**
 	 * アイテム一覧取得
+	 * @TODO エラーによる制御へ変更　めんどくさいのでまた今度。動いてっし、、、
 	 * @param parentId 親フォルダID
 	 * @return
 	 */
@@ -29,8 +30,7 @@ public class ItemsService {
 		// parentIdが空だった場合、一番上の階層のフォルダを取得する。
 		if (parentId == null || parentId.isEmpty()) {
 			spec = FileSpecifications.parentIdIsNull();
-		}
-		else {
+		} else {
 			long num = 0;
 
 			try {
@@ -49,8 +49,7 @@ public class ItemsService {
 			files = fileRep.findAll(spec,
 					Sort.by(Sort.Direction.ASC, "typeCode").and(Sort.by(Sort.Direction.ASC, "createdAt")));
 
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			System.out.println("エラー: ファイル一覧の取得に失敗しました。");
 			return null;
 		}

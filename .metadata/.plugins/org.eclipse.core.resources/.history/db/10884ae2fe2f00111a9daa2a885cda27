@@ -1,0 +1,140 @@
+package com.shiku.file.util.error;
+
+import java.nio.file.NoSuchFileException;
+import java.sql.SQLException;
+
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+	/**
+	 * DB関連で失敗した場合
+	 * @param SQLException ex
+	 * @return 500 Internal Server Error
+	 */
+	@ExceptionHandler(SQLException.class)
+	public ResponseEntity<ErrorResponse> handleSQLException(SQLException ex) {
+		return internalServerErrorResponse(ex.getMessage());
+	}
+
+	/**
+	 * 想定した値がNULLだった場合
+	 * ・外部IDが指定されていない
+	 * @param NullPointerException ex
+	 * @return 404 Not Found
+	 */
+	@ExceptionHandler(NullPointerException.class)
+	public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException ex) {
+		return notFoundResponse(ex.getMessage());
+	}
+
+	/**
+	 * データ不整合の場合
+	 * @param IncorrectResultSizeDataAccessException ex
+	 * @return 400 Bad Request
+	 */
+	@ExceptionHandler(IncorrectResultSizeDataAccessException.class)
+	public ResponseEntity<ErrorResponse> handleIncorrectResultSizeDataAccessException(
+			IncorrectResultSizeDataAccessException ex) {
+		return badRequestResponse(ex.getMessage());
+	}
+
+	/**
+	 * 存在しないフォルダが指定されていた場合
+	 * @param NoSuchFileException ex
+	 * @return 404 Not Found
+	 */
+	@ExceptionHandler(NoSuchFileException.class)
+	public ResponseEntity<ErrorResponse> handleNoSuchFileException(NoSuchFileException ex) {
+		return notFoundResponse(ex.getMessage());
+	}
+
+	/**
+	 * ファイルとフォルダの想定とDBデータに相違がある場合
+	 * @param IllegalStateException ex
+	 * @return 400 Bad Request
+	 */
+	@ExceptionHandler(IllegalStateException.class)
+	public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
+		return badRequestResponse(ex.getMessage());
+	}
+	
+	/**
+	 * 日本語変換に失敗した場合
+	 * @param IllegalArgumentException ex
+	 * @return 400 NOT_ACCEPTABLE
+	 */
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+		return badRequestResponse(ex.getMessage());
+	}
+
+	/**
+	 * 上記以外の予期せぬすべての例外
+	 * @param Exception ex
+	 * @return 500 Internal Server Error
+	 */
+	@ExceptionHandler(Exception.class)
+	public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex) {
+		return internalServerErrorResponse("サーバー内部で予期せぬエラーが発生しました");
+	}
+
+	//---レスポンス定義--------------------------------------------------
+
+	/**
+	 * Bad Requestのレスポンス
+	 * @param message Exceptionに設定されたメッセージ
+	 * @return
+	 */
+	private ResponseEntity<ErrorResponse> badRequestResponse(String message) {
+		ErrorResponse error = new ErrorResponse(
+				HttpStatus.BAD_REQUEST.value(),
+				"BAD REQUEST",
+				message);
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+	}
+	
+	/**
+	 * Not Acceptableのレスポンス
+	 * @param message Exceptionに設定されたメッセージ
+	 * @return
+	 */
+	private ResponseEntity<ErrorResponse> badRequestResponse(String message) {
+		ErrorResponse error = new ErrorResponse(
+				HttpStatus.NOT_ACCEPTABLE.value(),
+				"Not Acceptable",
+				message);
+		return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(error);
+	}
+
+	/**
+	 * Not Foundのレスポンス
+	 * @param message Exceptionに設定されたメッセージ
+	 * @return
+	 */
+	private ResponseEntity<ErrorResponse> notFoundResponse(String message) {
+		ErrorResponse error = new ErrorResponse(
+				HttpStatus.NOT_FOUND.value(),
+				"NOT FOUND",
+				message);
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+	}
+
+	/**
+	 * Internal Server Errorのレスポンス
+	 * @param message Exceptionに設定されたメッセージ
+	 * @return
+	 */
+	private ResponseEntity<ErrorResponse> internalServerErrorResponse(String message) {
+		ErrorResponse error = new ErrorResponse(
+				HttpStatus.INTERNAL_SERVER_ERROR.value(),
+				"INTERNAL SERVER ERROR",
+				message);
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+	}
+}

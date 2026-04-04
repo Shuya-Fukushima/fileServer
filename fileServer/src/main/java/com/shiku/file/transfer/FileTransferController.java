@@ -1,7 +1,6 @@
 package com.shiku.file.transfer;
 
 import java.io.IOException;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
@@ -20,10 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.shiku.file.transfer.application.resource.UploadResponse;
-import com.shiku.file.transfer.domain.FileTransferDomainResult;
 import com.shiku.file.transfer.domain.FileTransferService;
-import com.shiku.file.util.domain.service.FileUtilService;
-import com.shiku.file.util.inflastructure.resource.File;
+import com.shiku.file.util.FileUtilService;
+import com.shiku.file.util.db.file.File;
 
 @RestController
 @RequestMapping("/api")
@@ -36,42 +34,16 @@ public class FileTransferController {
 	private FileUtilService fileService;
 
 	// A-04: ファイル/フォルダのアップロード
-	@PostMapping("/uploads/{publicId}")
+	@PostMapping(value = "/uploads/{publicId}", produces = "application/json; charset=utf-8")
 	public ResponseEntity<UploadResponse> upload(
 			@PathVariable UUID publicId,
-			@RequestParam List<MultipartFile> files) {
+			@RequestParam List<MultipartFile> files) throws IncorrectResultSizeDataAccessException,
+			NullPointerException, IllegalStateException, SQLException, IOException {
 
-		FileTransferDomainResult result = FileTransferDomainResult.SUCCESS;
 		List<String> failList = null;
 
-		try {
-			Pair<File, Path> pair = fileService.checkExistFile(publicId, false);
-			failList = service.storeFile(pair.getSecond(), pair.getFirst().getFileId(), files);
-		} catch (SQLException e) {
-			result = FileTransferDomainResult.SQL_EXECUTE_FAIL;
-		} catch (NullPointerException e) {
-			result = FileTransferDomainResult.NOT_EXIST;
-		} catch (IncorrectResultSizeDataAccessException e) {
-			result = FileTransferDomainResult.DATA_INCONSISTENCY;
-		} catch (NoSuchFileException e) {
-			result = FileTransferDomainResult.NOT_EXIST;
-		} catch (IllegalStateException e) {
-			result = FileTransferDomainResult.DATA_INCONSISTENCY;
-		} catch (IllegalArgumentException e) {
-			result = FileTransferDomainResult.GEN_HALFWIDTH_FAIL;
-		} catch (IOException e) {
-			result = FileTransferDomainResult.FILE_CREATE_FAIL;
-		}
-
-		HttpStatus status = switch (result) {
-		case FileTransferDomainResult.SUCCESS -> HttpStatus.CREATED;
-		case FileTransferDomainResult.FILE_CREATE_FAIL -> HttpStatus.CONFLICT;
-		case FileTransferDomainResult.SQL_EXECUTE_FAIL -> HttpStatus.INTERNAL_SERVER_ERROR;
-		case FileTransferDomainResult.GEN_HALFWIDTH_FAIL -> HttpStatus.NOT_ACCEPTABLE;
-		case FileTransferDomainResult.NOT_EXIST -> HttpStatus.NOT_FOUND;
-		case FileTransferDomainResult.DATA_INCONSISTENCY -> HttpStatus.BAD_REQUEST;
-		default -> HttpStatus.INTERNAL_SERVER_ERROR;
-		};
+		Pair<File, Path> pair = fileService.checkExistFile(publicId, false);
+		failList = service.storeFile(pair.getSecond(), pair.getFirst().getFileId(), files);
 
 		UploadResponse response = UploadResponse.builder()
 				.result(failList != null && failList.size() == 0)
@@ -79,7 +51,7 @@ public class FileTransferController {
 				.build();
 
 		return ResponseEntity
-				.status(status)
+				.status(HttpStatus.CREATED)
 				.body(response);
 	}
 

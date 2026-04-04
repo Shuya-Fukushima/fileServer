@@ -9,8 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.shiku.file.util.JapaneseToRomaji;
-import com.shiku.file.util.inflastructure.repository.FileRepository;
-import com.shiku.file.util.inflastructure.resource.File;
+import com.shiku.file.util.db.file.File;
+import com.shiku.file.util.db.file.FileRepository;
 
 @Service
 public class FolderService {
@@ -45,12 +45,13 @@ public class FolderService {
 		}
 
 		// 作成したフォルダをDBに登録する
-		File folder = new File();
-		folder.setPublicId(UUID.randomUUID());
-		folder.setTypeCode("D");
-		folder.setName(name);
-		folder.setPhysicalName(physicalName);
-		folder.setParentId(parentId);
+		File folder = File.builder()
+				.publicId(UUID.randomUUID())
+				.typeCode("D")
+				.name(name)
+				.physicalName(physicalName)
+				.parentId(parentId)
+				.build();
 
 		folder = fileRepo.save(folder);
 

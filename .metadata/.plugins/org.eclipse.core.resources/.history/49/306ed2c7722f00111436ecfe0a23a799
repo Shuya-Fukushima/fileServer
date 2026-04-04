@@ -1,0 +1,6 @@
+package com.shiku.file.folder.domain;
+
+@ExtendWith(FolderService.class)
+public class FolderServiceTest {
+
+}

@@ -16,10 +16,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.shiku.file.util.JapaneseToRomaji;
-import com.shiku.file.util.inflastructure.repository.ExtensionMasterRepository;
-import com.shiku.file.util.inflastructure.repository.FileRepository;
-import com.shiku.file.util.inflastructure.resource.ExtensionMaster;
-import com.shiku.file.util.inflastructure.resource.File;
+import com.shiku.file.util.db.extention.ExtensionMaster;
+import com.shiku.file.util.db.extention.ExtensionMasterRepository;
+import com.shiku.file.util.db.file.File;
+import com.shiku.file.util.db.file.FileRepository;
 
 @Service
 public class FileTransferService {
@@ -62,13 +62,15 @@ public class FileTransferService {
 
 				Integer extentionId = extentionMap.get(StringUtils.getFilenameExtension(fileName));
 
-				File saveFile = new File();
-				saveFile.setPublicId(UUID.randomUUID());
-				saveFile.setName(fileName);
-				saveFile.setPhysicalName(physicalName);
-				saveFile.setParentId(parentId);
-				saveFile.setSize(file.getSize());
-				saveFile.setExtension(String.format("%02d", extentionId != null ? extentionId.intValue() : 0));
+				File saveFile = File.builder()
+						.publicId(UUID.randomUUID())
+						.typeCode("F")
+						.name(fileName)
+						.physicalName(physicalName)
+						.parentId(parentId)
+						.size(file.getSize())
+						.extension(String.format("%02d", extentionId != null ? extentionId.intValue() : 0))
+						.build();
 
 				saveFiles.add(saveFile);
 			} catch (Exception ex) {

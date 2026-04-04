@@ -1,0 +1,18 @@
+package com.shiku.file.folder.domain;
+
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.shiku.file.util.inflastructure.repository.FileRepository;
+
+@ExtendWith(MockitoExtension.class)
+public class FolderServiceTest {
+
+	@InjectMocks
+	private FolderService folderService;
+	
+	@Mock
+	private FileRepository fileRepo;
+}

@@ -1,0 +1,91 @@
+package com.shiku.file.util.error;
+
+import java.nio.file.NoSuchFileException;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+	/**
+	 * DB関連で失敗した場合
+	 * @param SQLException ex
+	 * @return 500 Internal Server Error
+	 */
+	@ExceptionHandler(SQLException.class)
+	public ResponseEntity<ErrorResponse> handleSQLException(SQLException ex) {
+		ErrorResponse error = new ErrorResponse(
+				HttpStatus.INTERNAL_SERVER_ERROR.value(),
+				"INTERNAL SERVER ERROR",
+				ex.getMessage());
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+	}
+
+	/**
+	 * 想定した値がNULLだった場合
+	 * ・外部IDが指定されていない
+	 * @param NullPointerException ex
+	 * @return 404 Not Found
+	 */
+	@ExceptionHandler(NullPointerException.class)
+	public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException ex) {
+		ErrorResponse error = new ErrorResponse(
+				HttpStatus.NOT_FOUND.value(),
+				"NOT FOUND",
+				ex.getMessage());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+	}
+
+	/**
+	 * データ不整合の場合
+	 * @param IncorrectResultSizeDataAccessException ex
+	 * @return 400 Bad Request
+	 */
+	@ExceptionHandler(IncorrectResultSizeDataAccessException.class)
+	public ResponseEntity<ErrorResponse> handleIncorrectResultSizeDataAccessException(
+			IncorrectResultSizeDataAccessException ex) {
+		ErrorResponse error = new ErrorResponse(
+				HttpStatus.BAD_REQUEST.value(),
+				"BAD REQUEST",
+				ex.getMessage());
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+	}
+
+	/**
+	 * 存在しないフォルダが指定されていた場合
+	 * @param NoSuchFileException ex
+	 * @return 404 Not Found
+	 */
+	@ExceptionHandler(NoSuchFileException.class)
+	public ResponseEntity<ErrorResponse> handleNoSuchFileException(NoSuchFileException ex) {
+		ErrorResponse error = new ErrorResponse(
+				HttpStatus.NOT_FOUND.value(),
+				"NOT FOUND",
+				ex.getMessage());
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+	}
+
+	/**
+	 * 上記以外の予期せぬすべての例外
+	 * @param Exception ex
+	 * @return 500 Internal Server Error
+	 */
+	@ExceptionHandler(Exception.class)
+	public ResponseEntity<ErrorResponse> handleAllExceptions(Exception ex) {
+		ErrorResponse error = new ErrorResponse(
+				HttpStatus.INTERNAL_SERVER_ERROR.value(),
+				"Internal Server Error",
+				"サーバー内部で予期せぬエラーが発生しました");
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+	}
+}

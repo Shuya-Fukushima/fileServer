@@ -1,0 +1,108 @@
+package com.shiku.file.util.domain.service;
+
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.data.util.Pair;
+import org.springframework.stereotype.Service;
+
+import com.shiku.file.util.inflastructure.repository.FileRepository;
+import com.shiku.file.util.inflastructure.resource.File;
+import com.shiku.file.util.inflastructure.resource.FilePathProjection;
+
+@Service
+public class FileUtilService {
+
+	@Autowired
+	private FileRepository repo;
+
+	@Value("${file.upload-dir:C:/uploads}")
+	private Path rootDir;
+
+	/** ユニーク保証件数 */
+	private static final int UNIQUE = 1;
+
+	//-- 種別 -------------------------------
+	/** ファイル */
+	private static final String FILE = "F";
+	/** フォルダー */
+	private static final String FOLDER = "D";
+
+	/**
+	 * 指定されたファイル・フォルダが存在するか確認する
+	 * @param publicId フォルダの外部用ID
+	 * @param fileFlg ファイルフラグ: true(ファイル), false(フォルダ)
+	 * @return File 対象ファイル, Path 対象ファイルパス
+	 * @throws SQLException SQLの実行に失敗した
+	 * @throws NullPointerException 外部IDが指定されていない
+	 * @throws IncorrectResultSizeDataAccessException 一意で取得されるはずが複数か０件取得
+	 * @throws NoSuchFileException ファイル・フォルダが存在しない
+	 * @throws IllegalStateException ファイルとフォルダの想定とDBデータに相違がある
+	 */
+	public Pair<File, Path> checkExistFile(UUID publicId, boolean fileFlg)
+			throws SQLException, NullPointerException, IncorrectResultSizeDataAccessException, NoSuchFileException,
+			IllegalStateException {
+		if (publicId == null) {
+			throw new NullPointerException();
+		}
+
+		// publicIdが一致するデータ取得
+		List<File> files = repo.findAll(
+				(root, query, criteriaBuilder) -> criteriaBuilder.lessThanOrEqualTo(root.get("public_id"), publicId));
+
+		if (files.size() != UNIQUE) {
+			throw new IncorrectResultSizeDataAccessException(UNIQUE);
+		}
+
+		File file = files.get(0);
+		Path filePath = null;
+
+		// ファイルフラグ：True（ファイル）
+		if (fileFlg) {
+			if (!FILE.equals(file.getTypeCode())) {
+				throw new IllegalStateException();
+			}
+
+			filePath = getParentPath(repo.findFilePathList(file.getParentId()));
+			filePath = filePath.resolve(file.getPhysicalName());
+		}
+		// ファイルフラグ：False（フォルダ）
+		else {
+			if (!FOLDER.equals(file.getTypeCode())) {
+				throw new IllegalStateException();
+			}
+
+			filePath = getParentPath(repo.findFilePathList(file.getFileId()));
+		}
+
+		// ファイルもしくはフォルダが存在しなければエラー
+		if (Files.exists(filePath)) {
+			throw new NoSuchFileException(filePath.toString());
+		}
+
+		return Pair.of(file, filePath);
+	}
+
+	/**
+	 * 再帰的に取得された親フォルダリストからターゲットのパスを取得する。
+	 * （FileRepository.findFilePathListより）
+	 * @param parentFiles 再帰的に取得された親フォルダリスト
+	 * @return フォルダのパス
+	 */
+	private Path getParentPath(List<FilePathProjection> parentFiles) {
+		Path path = rootDir;
+
+		for (FilePathProjection filePath : parentFiles) {
+			path = path.resolve(filePath.getPhysicalName());
+		}
+
+		return path;
+	}
+}
