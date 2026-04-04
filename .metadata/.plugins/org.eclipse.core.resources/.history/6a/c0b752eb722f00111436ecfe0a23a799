@@ -1,8 +1,0 @@
-package com.shiku.file.folder.domain;
-
-import org.junit.jupiter.api.extension.ExtendWith;
-
-@ExtendWith(FolderService.class)
-public class FolderServiceTest {
-
-}
