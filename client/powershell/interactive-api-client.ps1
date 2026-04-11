@@ -11,6 +11,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 $ErrorActionPreference = "Stop"
 $Headers = @{ "Accept" = "application/json" }
 
+# -- Global parameter ------
 # 初期状態のパス
 $CurrentPath = "/"
 $CurrentId = 1
@@ -18,8 +19,45 @@ $History = New-Object 'System.Collections.Generic.Stack[int]'
 
 # -- const ------
 $SLEEP_TIME = 3 #second
+$FILE_ICON = "[FILE]"
+$FOLDER_ICON = "[DIR]"
 
 # --- 関数定義 ---
+# ---- 画面描画関数定義 ----
+function Enter-ApiItemsView {
+# - Descriotion -------
+# - APIへ接続し、ファイルサーバのファイル構造を反映する。
+# - 表示単位はフォルダ単位とし、中の内容を一覧で表現する。
+# - また、メインメニューとしての役割も兼任する。
+# - Buttons -------
+# - [Num]   : 一覧の左にある番号を指定してフォルダを移動する。ファイルである場合無視する。
+# - [..]    : 親フォルダへ移動する。現在地がルートディレクトリだった場合無視する。
+# - [c]     : 現在のフォルダに対して新しいフォルダを作成する。
+# -           作成予定のフォルダ名称の入力画面へ移行する。
+# - [q]     : アプリを終了する。
+# ---------------------
+    param([string[]]$ItemsVeiw, [bool]$ErrorFlg)
+    Write-Host "================================================" -ForegroundColor Cyan
+    Write-Host "  API File Explorer"
+    Write-Host ("  Current Path: " + $CurrentPath) -ForegroundColor Yellow
+    Write-Host "================================================"
+
+    if ($ErrorFlg) {
+        Write-Host "Error: Failed to get items." -ForegroundColor Red
+    }
+    else {
+        foreach ($itemVeiw in $ItemsVeiw) {
+            Write-Host ($itemVeiw)
+        }
+    }
+
+    Write-Host "------------------------------------------------"
+    Write-Host " [Num]:Move  [..]:Up  [c]:NewFolder  [q]:Quit"
+
+    $inputVal = Read-Host "`nChoice"
+    if ($null -eq $inputVal) { $inputVal = "" }
+    return $inputVal.Trim()
+}
 
 function Get-ApiItems {
 # - items -------
@@ -55,35 +93,29 @@ function New-ApiFolder {
 
 while ($true) {
     Clear-Host
-    Write-Host "================================================" -ForegroundColor Cyan
-    Write-Host "  API File Explorer"
-    Write-Host ("  Current Path: " + $CurrentPath) -ForegroundColor Yellow
-    Write-Host "================================================"
 
+    $itemsVeiw = New-Object string[] 0
+    $errorFlg = $false
+
+    # APIからITEMを取得
     $itemMap = @{}
     try {
         $items = Get-ApiItems -ParentId $CurrentId
         $i = 1
         foreach ($item in $items) {
-            # 互換性の高いif文
-            $icon = "[FILE]"
-            if ($item.typeCode -eq "D") { $icon = "[DIR] " }
+            $icon = $FILE_ICON
+            if ($item.typeCode -eq "D") { $icon = $FOLDER_ICON }
             
-            Write-Host (" {0,2} : {1} {2}" -f $i, $icon, $item.name)
+            $itemsVeiw += (" {0,2} : {1} {2}" -f $i, $icon, $item.name)
             $itemMap[$i] = $item
             $i++
         }
     }
     catch {
-        Write-Host "Error: Failed to get items." -ForegroundColor Red
+        $errorFlg = $true
     }
 
-    Write-Host "------------------------------------------------"
-    Write-Host " [Num]:Move  [..]:Up  [c]:NewFolder  [q]:Quit"
-    
-    $inputVal = Read-Host "`nChoice"
-    if ($null -eq $inputVal) { $inputVal = "" }
-    $inputVal = $inputVal.Trim()
+    $inputVal = Enter-ApiItemsView -ItemsVeiw $itemsVeiw -ErrorFlg $errorFlg
 
     # --- 条件分岐 ---
     if ($inputVal -eq "q") {
